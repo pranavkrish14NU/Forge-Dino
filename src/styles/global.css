@@ -1,0 +1,124 @@
+:root {
+  --color-bg: #f7f7f7;
+  --color-fg: #202020;
+  --color-accent: #2563eb;
+  --color-accent-fg: #ffffff;
+  --color-ground: #535353;
+  --color-overlay-bg: rgba(247, 247, 247, 0.92);
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --radius: 0.5rem;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-fg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-4);
+}
+
+.game-screen {
+  position: relative;
+  width: min(100%, 960px);
+  height: clamp(320px, 60vh, 480px);
+  background: #ffffff;
+  border: 2px solid var(--color-fg);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.game-screen__playfield {
+  position: absolute;
+  inset: 0;
+}
+
+.game-screen__ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 48px;
+  height: 2px;
+  background: var(--color-ground);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-overlay-bg);
+  backdrop-filter: blur(2px);
+}
+
+.overlay__content {
+  text-align: center;
+  padding: var(--space-5);
+  max-width: 480px;
+}
+
+.overlay__heading {
+  font-size: 2rem;
+  margin: 0 0 var(--space-3);
+  letter-spacing: -0.01em;
+}
+
+.overlay__score {
+  font-size: 1.125rem;
+  margin: 0 0 var(--space-3);
+}
+
+.overlay__score span {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.overlay__instructions {
+  font-size: 1rem;
+  margin: 0 0 var(--space-4);
+  color: #404040;
+}
+
+.overlay__button {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.625rem 1.5rem;
+  border-radius: var(--radius);
+  border: 2px solid var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+  cursor: pointer;
+  transition: filter 120ms ease;
+}
+
+.overlay__button:hover {
+  filter: brightness(1.05);
+}
+
+.overlay__button:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
