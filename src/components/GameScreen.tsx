@@ -22,8 +22,20 @@ import {
   updateObstacles,
   type Obstacle,
 } from '../engine/spawner';
+import { checkCollision, type AABB } from '../engine/collision';
 
 const GAME_AREA_WIDTH = 960;
+const DINO_LEFT = 64;
+const DINO_WIDTH = 36;
+const DINO_HEIGHT = 48;
+
+function dinoToAABB(dino: DinoState): AABB {
+  return { x: DINO_LEFT, y: dino.y, width: DINO_WIDTH, height: DINO_HEIGHT };
+}
+
+function obstacleToAABB(obs: Obstacle): AABB {
+  return { x: obs.x, y: 0, width: obs.width, height: obs.height };
+}
 
 interface GameScreenProps {
   readonly testEndGame?: (endGame: (score: number) => boolean) => void;
@@ -122,9 +134,15 @@ export function GameScreen({
         return obstaclesRef.current.map((o) => o.id);
       });
 
+      const dinoBox = dinoToAABB(dinoStateRef.current);
+      const obstacleBoxes = obstaclesRef.current.map(obstacleToAABB);
+      if (checkCollision(dinoBox, obstacleBoxes)) {
+        endGame(0);
+      }
+
       testLoopUpdate?.(deltaTime);
     },
-    [testLoopUpdate, testRng, testSpawnIntervalOverride],
+    [endGame, testLoopUpdate, testRng, testSpawnIntervalOverride],
   );
 
   useGameLoop(state, onLoopUpdate);
