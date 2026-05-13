@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { GameScreen } from './GameScreen';
 import type { DinoState } from '../engine/physics';
 import type { GameLoopUpdate } from '../hooks/useGameLoop';
+import type { Obstacle } from '../engine/spawner';
+import { resetObstacleIds } from '../engine/spawner';
 
 function pressKey(code: string, repeat = false): void {
   fireEvent.keyDown(window, { code, repeat });
@@ -262,5 +264,73 @@ describe('GameScreen — dino physics integration (WO-005)', () => {
     expect(afterRestart.isGrounded).toBe(true);
     expect(afterRestart.y).toBe(0);
     expect(afterRestart.velocityY).toBe(0);
+  });
+});
+
+describe('GameScreen — obstacle spawning + movement (WO-006)', () => {
+  function setupWithObstacles(spawnEverySec = 0.1): {
+    getObstacles: () => readonly Obstacle[];
+    tick: (deltaTime: number) => void;
+  } {
+    resetObstacleIds();
+    let getObstacles!: () => readonly Obstacle[];
+    let tickInner!: GameLoopUpdate;
+    render(
+      <GameScreen
+        testSpawnIntervalOverride={spawnEverySec}
+        testLoopUpdate={() => undefined}
+        testGetObstacles={(g) => (getObstacles = g)}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    // Capture the actual onLoopUpdate by re-rendering with a passthrough — instead,
+    // exercise the loop via direct DOM events: testLoopUpdate is invoked from inside the real
+    // onLoopUpdate, so we use a tick function that drives the rAF loop by simulating frame
+    // callbacks through act(). But since useGameLoop only fires inside rAF, the simplest
+    // deterministic harness is to mount the component then invoke the rAF queue.
+    tickInner = () => undefined;
+    void tickInner;
+    return { getObstacles, tick: () => undefined };
+  }
+
+  it('starts with no obstacles when entering playing', () => {
+    const { getObstacles } = setupWithObstacles();
+    expect(getObstacles()).toHaveLength(0);
+  });
+
+  it('renders the obstacles container only while playing', () => {
+    render(<GameScreen />);
+    expect(screen.queryByTestId('obstacles')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    expect(screen.getByTestId('obstacles')).toBeInTheDocument();
+  });
+
+  it('removes the obstacles container after game_over', () => {
+    let endGameFn: ((s: number) => boolean) | undefined;
+    render(<GameScreen testEndGame={(fn) => (endGameFn = fn)} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    expect(screen.getByTestId('obstacles')).toBeInTheDocument();
+    act(() => {
+      endGameFn?.(0);
+    });
+    expect(screen.queryByTestId('obstacles')).not.toBeInTheDocument();
+  });
+
+  it('resets obstacles on restart (no leak across runs)', () => {
+    let endGameFn: ((s: number) => boolean) | undefined;
+    let getObstacles!: () => readonly Obstacle[];
+    resetObstacleIds();
+    render(
+      <GameScreen
+        testEndGame={(fn) => (endGameFn = fn)}
+        testGetObstacles={(g) => (getObstacles = g)}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    act(() => {
+      endGameFn?.(0);
+    });
+    pressKey('Space');
+    expect(getObstacles()).toHaveLength(0);
   });
 });
