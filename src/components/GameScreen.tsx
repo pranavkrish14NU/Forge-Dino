@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import { Overlay } from './Overlay';
 import { Dino } from './Dino';
+import { Hud } from './Hud';
 import { ObstacleList } from './ObstacleList';
 import { useGameState } from '../hooks/useGameState';
 import { useGameLoop, type GameLoopUpdate } from '../hooks/useGameLoop';
@@ -28,6 +29,8 @@ const GAME_AREA_WIDTH = 960;
 const DINO_LEFT = 64;
 const DINO_WIDTH = 36;
 const DINO_HEIGHT = 48;
+const SCORE_RATE = 10;
+const SCORE_THROTTLE_SECONDS = 0.1;
 
 function dinoToAABB(dino: DinoState): AABB {
   return { x: DINO_LEFT, y: dino.y, width: DINO_WIDTH, height: DINO_HEIGHT };
@@ -88,6 +91,10 @@ export function GameScreen({
   );
   const [obstacleIds, setObstacleIds] = useState<number[]>([]);
 
+  const scoreRef = useRef<number>(0);
+  const lastScoreFlushRef = useRef<number>(0);
+  const [displayedScore, setDisplayedScore] = useState<number>(0);
+
   const registerObstacleEl = useCallback((id: number, el: HTMLDivElement | null) => {
     if (el === null) {
       obstacleElsRef.current.delete(id);
@@ -106,6 +113,9 @@ export function GameScreen({
     timeSinceSpawnRef.current = 0;
     nextSpawnIntervalRef.current = testSpawnIntervalOverride ?? nextSpawnInterval(0, testRng);
     setObstacleIds([]);
+    scoreRef.current = 0;
+    lastScoreFlushRef.current = 0;
+    setDisplayedScore(0);
   }, [testRng, testSpawnIntervalOverride]);
 
   const onLoopUpdate = useCallback<GameLoopUpdate>(
@@ -134,10 +144,19 @@ export function GameScreen({
         return obstaclesRef.current.map((o) => o.id);
       });
 
+      scoreRef.current += deltaTime * SCORE_RATE;
+      if (elapsedRef.current - lastScoreFlushRef.current >= SCORE_THROTTLE_SECONDS) {
+        lastScoreFlushRef.current = elapsedRef.current;
+        const flushed = Math.floor(scoreRef.current);
+        setDisplayedScore((prev) => (prev === flushed ? prev : flushed));
+      }
+
       const dinoBox = dinoToAABB(dinoStateRef.current);
       const obstacleBoxes = obstaclesRef.current.map(obstacleToAABB);
       if (checkCollision(dinoBox, obstacleBoxes)) {
-        endGame(0);
+        const finalScore = Math.floor(scoreRef.current);
+        setDisplayedScore(finalScore);
+        endGame(finalScore);
       }
 
       testLoopUpdate?.(deltaTime);
@@ -225,6 +244,7 @@ export function GameScreen({
         {state === 'playing' && (
           <ObstacleList obstacleIds={obstacleIds} registerEl={registerObstacleEl} />
         )}
+        {state === 'playing' && <Hud score={displayedScore} />}
       </div>
 
       {state === 'ready' && <Overlay variant="ready" onAction={handleButtonClick} />}

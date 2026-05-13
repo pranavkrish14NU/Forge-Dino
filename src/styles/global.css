@@ -75,6 +75,32 @@ body {
   box-shadow: inset -6px 8px 0 0 rgba(255, 255, 255, 0.12);
 }
 
+.hud {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-fg);
+  pointer-events: none;
+  user-select: none;
+}
+
+.hud__label {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.hud__value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 .obstacles {
   position: absolute;
   inset: 0;
