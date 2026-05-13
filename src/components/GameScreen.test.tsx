@@ -131,3 +131,47 @@ describe('GameScreen — invalid input gating', () => {
     expect(screen.queryByTestId('ready-overlay')).not.toBeInTheDocument();
   });
 });
+
+describe('GameScreen — intent dispatch (WO-004)', () => {
+  it('dispatches START intent when Space is pressed from ready', () => {
+    const intents: string[] = [];
+    render(<GameScreen testOnIntent={(i) => intents.push(i)} />);
+    pressKey('Space');
+    expect(intents).toEqual(['START']);
+  });
+
+  it('dispatches JUMP intent when Space is pressed from playing', () => {
+    const intents: string[] = [];
+    render(<GameScreen testOnIntent={(i) => intents.push(i)} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    intents.length = 0;
+    pressKey('Space');
+    expect(intents).toEqual(['JUMP']);
+    expect(screen.getByTestId('game-screen')).toHaveAttribute('data-state', 'playing');
+  });
+
+  it('dispatches RESTART intent when Space is pressed from game_over', () => {
+    let endGameFn: ((score: number) => boolean) | undefined;
+    const intents: string[] = [];
+    render(
+      <GameScreen
+        testOnIntent={(i) => intents.push(i)}
+        testEndGame={(fn) => (endGameFn = fn)}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    act(() => {
+      endGameFn?.(0);
+    });
+    intents.length = 0;
+    pressKey('Space');
+    expect(intents).toEqual(['RESTART']);
+  });
+
+  it('button click dispatches the same intent as the matching keyboard input', () => {
+    const intents: string[] = [];
+    render(<GameScreen testOnIntent={(i) => intents.push(i)} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    expect(intents).toEqual(['START']);
+  });
+});

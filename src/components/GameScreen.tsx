@@ -2,15 +2,23 @@ import { useCallback, useEffect, useMemo, useRef, type JSX } from 'react';
 import { Overlay } from './Overlay';
 import { useGameState } from '../hooks/useGameState';
 import { useGameLoop, type GameLoopUpdate } from '../hooks/useGameLoop';
-
-const ACTIVATION_KEYS: ReadonlySet<string> = new Set(['Space', 'ArrowUp']);
+import {
+  intentForState,
+  useInputController,
+  type Intent,
+} from '../hooks/useInputController';
 
 interface GameScreenProps {
   readonly testEndGame?: (endGame: (score: number) => boolean) => void;
   readonly testLoopUpdate?: GameLoopUpdate;
+  readonly testOnIntent?: (intent: Intent) => void;
 }
 
-export function GameScreen({ testEndGame, testLoopUpdate }: GameScreenProps = {}): JSX.Element {
+export function GameScreen({
+  testEndGame,
+  testLoopUpdate,
+  testOnIntent,
+}: GameScreenProps = {}): JSX.Element {
   const { state, score, start, endGame, restart } = useGameState();
   const elapsedRef = useRef<number>(0);
 
@@ -24,6 +32,26 @@ export function GameScreen({ testEndGame, testLoopUpdate }: GameScreenProps = {}
 
   useGameLoop(state, onLoopUpdate);
 
+  const dispatchIntent = useCallback(
+    (intent: Intent) => {
+      testOnIntent?.(intent);
+      switch (intent) {
+        case 'START':
+          start();
+          break;
+        case 'RESTART':
+          restart();
+          break;
+        case 'JUMP':
+          // Consumed by WO-005 physics. No state change here.
+          break;
+      }
+    },
+    [start, restart, testOnIntent],
+  );
+
+  useInputController(state, dispatchIntent);
+
   const announcement = useMemo(() => {
     switch (state) {
       case 'ready':
@@ -35,26 +63,9 @@ export function GameScreen({ testEndGame, testLoopUpdate }: GameScreenProps = {}
     }
   }, [state, score]);
 
-  const handleActivation = useCallback(() => {
-    if (state === 'ready') {
-      start();
-    } else if (state === 'game_over') {
-      restart();
-    }
-  }, [state, start, restart]);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.repeat) return;
-      if (!ACTIVATION_KEYS.has(event.code)) return;
-      if (state === 'ready' || state === 'game_over') {
-        event.preventDefault();
-        handleActivation();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [state, handleActivation]);
+  const handleButtonClick = useCallback(() => {
+    dispatchIntent(intentForState(state));
+  }, [state, dispatchIntent]);
 
   useEffect(() => {
     if (testEndGame) testEndGame(endGame);
@@ -87,9 +98,9 @@ export function GameScreen({ testEndGame, testLoopUpdate }: GameScreenProps = {}
         <div className="game-screen__ground" />
       </div>
 
-      {state === 'ready' && <Overlay variant="ready" onAction={handleActivation} />}
+      {state === 'ready' && <Overlay variant="ready" onAction={handleButtonClick} />}
       {state === 'game_over' && (
-        <Overlay variant="game_over" score={score} onAction={handleActivation} />
+        <Overlay variant="game_over" score={score} onAction={handleButtonClick} />
       )}
     </main>
   );
