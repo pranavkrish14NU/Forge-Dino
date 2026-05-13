@@ -1,15 +1,28 @@
-import { useCallback, useEffect, useMemo, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type JSX } from 'react';
 import { Overlay } from './Overlay';
 import { useGameState } from '../hooks/useGameState';
+import { useGameLoop, type GameLoopUpdate } from '../hooks/useGameLoop';
 
 const ACTIVATION_KEYS: ReadonlySet<string> = new Set(['Space', 'ArrowUp']);
 
 interface GameScreenProps {
   readonly testEndGame?: (endGame: (score: number) => boolean) => void;
+  readonly testLoopUpdate?: GameLoopUpdate;
 }
 
-export function GameScreen({ testEndGame }: GameScreenProps = {}): JSX.Element {
+export function GameScreen({ testEndGame, testLoopUpdate }: GameScreenProps = {}): JSX.Element {
   const { state, score, start, endGame, restart } = useGameState();
+  const elapsedRef = useRef<number>(0);
+
+  const onLoopUpdate = useCallback<GameLoopUpdate>(
+    (deltaTime) => {
+      elapsedRef.current += deltaTime;
+      testLoopUpdate?.(deltaTime);
+    },
+    [testLoopUpdate],
+  );
+
+  useGameLoop(state, onLoopUpdate);
 
   const announcement = useMemo(() => {
     switch (state) {
