@@ -5,3 +5,6 @@ dist/
 coverage/
 *.local
 .DS_Store
+.forge-commit-ready
+.forge/project-id
+.claude/hooks/
