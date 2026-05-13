@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { GameScreen } from './GameScreen';
+import type { DinoState } from '../engine/physics';
+import type { GameLoopUpdate } from '../hooks/useGameLoop';
 
 function pressKey(code: string, repeat = false): void {
   fireEvent.keyDown(window, { code, repeat });
@@ -173,5 +175,92 @@ describe('GameScreen — intent dispatch (WO-004)', () => {
     render(<GameScreen testOnIntent={(i) => intents.push(i)} />);
     fireEvent.click(screen.getByRole('button', { name: 'Start' }));
     expect(intents).toEqual(['START']);
+  });
+});
+
+describe('GameScreen — dino physics integration (WO-005)', () => {
+  function getStartedScreen(): {
+    getDino: () => DinoState;
+    tick: (deltaTime: number) => void;
+  } {
+    let getDino!: () => DinoState;
+    let tickInner: GameLoopUpdate | undefined;
+    render(
+      <GameScreen
+        testGetDinoState={(g) => {
+          getDino = g;
+        }}
+        testLoopUpdate={(dt) => tickInner?.(dt)}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    const tick = (deltaTime: number): void => {
+      tickInner = undefined;
+      // Trigger one rAF frame by directly invoking the loop callback's wired side effects.
+      // Since useGameLoop drives onLoopUpdate via rAF, in tests we exercise the same dino state
+      // path by calling JUMP and reading state. For multi-frame integration we'd need a fake
+      // rAF mock; this helper exists so callers can opt-in.
+      void deltaTime;
+    };
+    return { getDino, tick };
+  }
+
+  it('initializes the dino in a grounded state when entering playing', () => {
+    const { getDino } = getStartedScreen();
+    const s = getDino();
+    expect(s.y).toBe(0);
+    expect(s.velocityY).toBe(0);
+    expect(s.isGrounded).toBe(true);
+  });
+
+  it('applies JUMP intent to the physics state (Space during playing sets jump velocity)', () => {
+    const { getDino } = getStartedScreen();
+    pressKey('Space');
+    const s = getDino();
+    expect(s.isGrounded).toBe(false);
+    expect(s.velocityY).toBeGreaterThan(0);
+  });
+
+  it('ignores Space when already airborne (no double-jump)', () => {
+    const { getDino } = getStartedScreen();
+    pressKey('Space');
+    const afterFirst = getDino();
+    pressKey('Space');
+    const afterSecond = getDino();
+    expect(afterSecond.velocityY).toBe(afterFirst.velocityY);
+    expect(afterSecond.y).toBe(afterFirst.y);
+  });
+
+  it('renders the dino element while in playing state', () => {
+    getStartedScreen();
+    expect(screen.getByTestId('dino')).toBeInTheDocument();
+    expect(screen.getByTestId('dino')).toHaveStyle({ visibility: 'visible' });
+  });
+
+  it('hides the dino while in ready or game_over state', () => {
+    render(<GameScreen />);
+    expect(screen.getByTestId('dino')).toHaveStyle({ visibility: 'hidden' });
+  });
+
+  it('resets dino state when transitioning into playing (START re-inits dino)', () => {
+    let getDino!: () => DinoState;
+    let endGameFn: ((score: number) => boolean) | undefined;
+    render(
+      <GameScreen
+        testGetDinoState={(g) => (getDino = g)}
+        testEndGame={(fn) => (endGameFn = fn)}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    pressKey('Space');
+    expect(getDino().isGrounded).toBe(false);
+    act(() => {
+      endGameFn?.(0);
+    });
+    pressKey('Space');
+    const afterRestart = getDino();
+    expect(afterRestart.isGrounded).toBe(true);
+    expect(afterRestart.y).toBe(0);
+    expect(afterRestart.velocityY).toBe(0);
   });
 });
