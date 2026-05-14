@@ -2,7 +2,6 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { GameScreen } from './GameScreen';
 import type { DinoState } from '../engine/physics';
-import type { GameLoopUpdate } from '../hooks/useGameLoop';
 import type { Obstacle } from '../engine/spawner';
 import { resetObstacleIds } from '../engine/spawner';
 
@@ -181,30 +180,17 @@ describe('GameScreen — intent dispatch (WO-004)', () => {
 });
 
 describe('GameScreen — dino physics integration (WO-005)', () => {
-  function getStartedScreen(): {
-    getDino: () => DinoState;
-    tick: (deltaTime: number) => void;
-  } {
+  function getStartedScreen(): { getDino: () => DinoState } {
     let getDino!: () => DinoState;
-    let tickInner: GameLoopUpdate | undefined;
     render(
       <GameScreen
         testGetDinoState={(g) => {
           getDino = g;
         }}
-        testLoopUpdate={(dt) => tickInner?.(dt)}
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: /Start/i }));
-    const tick = (deltaTime: number): void => {
-      tickInner = undefined;
-      // Trigger one rAF frame by directly invoking the loop callback's wired side effects.
-      // Since useGameLoop drives onLoopUpdate via rAF, in tests we exercise the same dino state
-      // path by calling JUMP and reading state. For multi-frame integration we'd need a fake
-      // rAF mock; this helper exists so callers can opt-in.
-      void deltaTime;
-    };
-    return { getDino, tick };
+    return { getDino };
   }
 
   it('initializes the dino in a grounded state when entering playing', () => {
@@ -270,11 +256,9 @@ describe('GameScreen — dino physics integration (WO-005)', () => {
 describe('GameScreen — obstacle spawning + movement (WO-006)', () => {
   function setupWithObstacles(spawnEverySec = 0.1): {
     getObstacles: () => readonly Obstacle[];
-    tick: (deltaTime: number) => void;
   } {
     resetObstacleIds();
     let getObstacles!: () => readonly Obstacle[];
-    let tickInner!: GameLoopUpdate;
     render(
       <GameScreen
         testSpawnIntervalOverride={spawnEverySec}
@@ -283,14 +267,7 @@ describe('GameScreen — obstacle spawning + movement (WO-006)', () => {
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: /Start/i }));
-    // Capture the actual onLoopUpdate by re-rendering with a passthrough — instead,
-    // exercise the loop via direct DOM events: testLoopUpdate is invoked from inside the real
-    // onLoopUpdate, so we use a tick function that drives the rAF loop by simulating frame
-    // callbacks through act(). But since useGameLoop only fires inside rAF, the simplest
-    // deterministic harness is to mount the component then invoke the rAF queue.
-    tickInner = () => undefined;
-    void tickInner;
-    return { getObstacles, tick: () => undefined };
+    return { getObstacles };
   }
 
   it('starts with no obstacles when entering playing', () => {
