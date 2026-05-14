@@ -29,7 +29,7 @@ describe('GameScreen — initial render', () => {
 describe('GameScreen — ready → playing', () => {
   it('transitions when Start button is clicked', () => {
     render(<GameScreen />);
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     expect(screen.queryByTestId('ready-overlay')).not.toBeInTheDocument();
     expect(screen.getByTestId('game-screen')).toHaveAttribute('data-state', 'playing');
   });
@@ -71,7 +71,7 @@ describe('GameScreen — playing → game_over (programmatic endGame)', () => {
   it('shows the game-over overlay with placeholder score 0 when endGame is invoked', () => {
     let endGameFn: ((score: number) => boolean) | undefined;
     render(<GameScreen testEndGame={(fn) => (endGameFn = fn)} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
 
     expect(endGameFn).toBeDefined();
     act(() => {
@@ -80,13 +80,13 @@ describe('GameScreen — playing → game_over (programmatic endGame)', () => {
 
     expect(screen.getByTestId('game-over-overlay')).toBeInTheDocument();
     expect(screen.getByTestId('overlay-score')).toHaveTextContent('Final Score: 0');
-    expect(screen.getByRole('button', { name: 'Restart' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Restart/i })).toBeInTheDocument();
   });
 
   it('announces "Game over. Final score: N" via the ARIA live region', () => {
     let endGameFn: ((score: number) => boolean) | undefined;
     render(<GameScreen testEndGame={(fn) => (endGameFn = fn)} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     act(() => {
       endGameFn?.(42);
     });
@@ -98,7 +98,7 @@ describe('GameScreen — game_over → playing (restart)', () => {
   function getToGameOver(): void {
     let endGameFn: ((score: number) => boolean) | undefined;
     render(<GameScreen testEndGame={(fn) => (endGameFn = fn)} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     act(() => {
       endGameFn?.(7);
     });
@@ -107,7 +107,7 @@ describe('GameScreen — game_over → playing (restart)', () => {
 
   it('restarts when the Restart button is clicked', () => {
     getToGameOver();
-    fireEvent.click(screen.getByRole('button', { name: 'Restart' }));
+    fireEvent.click(screen.getByRole('button', { name: /Restart/i }));
     expect(screen.queryByTestId('game-over-overlay')).not.toBeInTheDocument();
     expect(screen.getByTestId('game-screen')).toHaveAttribute('data-state', 'playing');
   });
@@ -128,7 +128,7 @@ describe('GameScreen — game_over → playing (restart)', () => {
 describe('GameScreen — invalid input gating', () => {
   it('ignores Space during playing state (no jump physics yet — would only transition state)', () => {
     render(<GameScreen />);
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     pressKey('Space');
     expect(screen.getByTestId('game-screen')).toHaveAttribute('data-state', 'playing');
     expect(screen.queryByTestId('game-over-overlay')).not.toBeInTheDocument();
@@ -147,7 +147,7 @@ describe('GameScreen — intent dispatch (WO-004)', () => {
   it('dispatches JUMP intent when Space is pressed from playing', () => {
     const intents: string[] = [];
     render(<GameScreen testOnIntent={(i) => intents.push(i)} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     intents.length = 0;
     pressKey('Space');
     expect(intents).toEqual(['JUMP']);
@@ -163,7 +163,7 @@ describe('GameScreen — intent dispatch (WO-004)', () => {
         testEndGame={(fn) => (endGameFn = fn)}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     act(() => {
       endGameFn?.(0);
     });
@@ -175,7 +175,7 @@ describe('GameScreen — intent dispatch (WO-004)', () => {
   it('button click dispatches the same intent as the matching keyboard input', () => {
     const intents: string[] = [];
     render(<GameScreen testOnIntent={(i) => intents.push(i)} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     expect(intents).toEqual(['START']);
   });
 });
@@ -195,7 +195,7 @@ describe('GameScreen — dino physics integration (WO-005)', () => {
         testLoopUpdate={(dt) => tickInner?.(dt)}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     const tick = (deltaTime: number): void => {
       tickInner = undefined;
       // Trigger one rAF frame by directly invoking the loop callback's wired side effects.
@@ -253,7 +253,7 @@ describe('GameScreen — dino physics integration (WO-005)', () => {
         testEndGame={(fn) => (endGameFn = fn)}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     pressKey('Space');
     expect(getDino().isGrounded).toBe(false);
     act(() => {
@@ -282,7 +282,7 @@ describe('GameScreen — obstacle spawning + movement (WO-006)', () => {
         testGetObstacles={(g) => (getObstacles = g)}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     // Capture the actual onLoopUpdate by re-rendering with a passthrough — instead,
     // exercise the loop via direct DOM events: testLoopUpdate is invoked from inside the real
     // onLoopUpdate, so we use a tick function that drives the rAF loop by simulating frame
@@ -301,14 +301,14 @@ describe('GameScreen — obstacle spawning + movement (WO-006)', () => {
   it('renders the obstacles container only while playing', () => {
     render(<GameScreen />);
     expect(screen.queryByTestId('obstacles')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     expect(screen.getByTestId('obstacles')).toBeInTheDocument();
   });
 
   it('removes the obstacles container after game_over', () => {
     let endGameFn: ((s: number) => boolean) | undefined;
     render(<GameScreen testEndGame={(fn) => (endGameFn = fn)} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     expect(screen.getByTestId('obstacles')).toBeInTheDocument();
     act(() => {
       endGameFn?.(0);
@@ -326,7 +326,7 @@ describe('GameScreen — obstacle spawning + movement (WO-006)', () => {
         testGetObstacles={(g) => (getObstacles = g)}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     act(() => {
       endGameFn?.(0);
     });
@@ -339,20 +339,20 @@ describe('GameScreen — score HUD (WO-008)', () => {
   it('renders the HUD only while playing', () => {
     render(<GameScreen />);
     expect(screen.queryByTestId('hud')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     expect(screen.getByTestId('hud')).toBeInTheDocument();
   });
 
   it('starts the displayed score at 0000', () => {
     render(<GameScreen />);
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     expect(screen.getByTestId('hud-score').textContent).toBe('0000');
   });
 
   it('removes the HUD when transitioning to game_over', () => {
     let endGameFn: ((s: number) => boolean) | undefined;
     render(<GameScreen testEndGame={(fn) => (endGameFn = fn)} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     expect(screen.getByTestId('hud')).toBeInTheDocument();
     act(() => {
       endGameFn?.(123);
@@ -363,7 +363,7 @@ describe('GameScreen — score HUD (WO-008)', () => {
   it('displays the final score on the game-over overlay (frozen at endGame time)', () => {
     let endGameFn: ((s: number) => boolean) | undefined;
     render(<GameScreen testEndGame={(fn) => (endGameFn = fn)} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     act(() => {
       endGameFn?.(123);
     });
@@ -373,11 +373,31 @@ describe('GameScreen — score HUD (WO-008)', () => {
   it('resets the HUD score to 0000 on restart', () => {
     let endGameFn: ((s: number) => boolean) | undefined;
     render(<GameScreen testEndGame={(fn) => (endGameFn = fn)} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     act(() => {
       endGameFn?.(99);
     });
     pressKey('Space');
     expect(screen.getByTestId('hud-score').textContent).toBe('0000');
+  });
+});
+
+describe('GameScreen — ARIA accessibility (WO-010)', () => {
+  it('has role=application and aria-label', () => {
+    render(<GameScreen />);
+    const screenEl = screen.getByTestId('game-screen');
+    expect(screenEl).toHaveAttribute('role', 'application');
+    expect(screenEl).toHaveAttribute('aria-label', 'Dino Jump game');
+  });
+
+  it('is programmatically focusable (tabIndex=-1)', () => {
+    render(<GameScreen />);
+    expect(screen.getByTestId('game-screen')).toHaveAttribute('tabindex', '-1');
+  });
+
+  it('moves focus to the game area when state transitions to playing', () => {
+    render(<GameScreen />);
+    fireEvent.click(screen.getByRole('button', { name: /Start/ }));
+    expect(document.activeElement).toBe(screen.getByTestId('game-screen'));
   });
 });

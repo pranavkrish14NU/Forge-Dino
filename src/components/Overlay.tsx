@@ -12,6 +12,7 @@ interface VariantContent {
   readonly heading: string;
   readonly instructions: string;
   readonly actionLabel: string;
+  readonly actionAriaLabel: string;
   readonly extra?: ReactNode;
 }
 
@@ -21,12 +22,14 @@ function getContent(variant: OverlayVariant, score: number): VariantContent {
       heading: 'Dino Jump',
       instructions: 'Press Space to Start',
       actionLabel: 'Start',
+      actionAriaLabel: 'Start the Dino Jump game',
     };
   }
   return {
     heading: 'Game Over',
     instructions: 'Press Space to Restart',
     actionLabel: 'Restart',
+    actionAriaLabel: `Restart the game. Final score was ${score}.`,
     extra: (
       <p className="overlay__score" data-testid="overlay-score">
         Final Score: <span>{score}</span>
@@ -53,7 +56,13 @@ export function Overlay({ variant, score = 0, onAction }: OverlayProps): JSX.Ele
         </h1>
         {content.extra}
         <p className="overlay__instructions">{content.instructions}</p>
-        <button type="button" className="overlay__button" onClick={onAction}>
+        <button
+          type="button"
+          className="overlay__button"
+          onClick={onAction}
+          aria-label={content.actionAriaLabel}
+          autoFocus
+        >
           {content.actionLabel}
         </button>
       </div>
