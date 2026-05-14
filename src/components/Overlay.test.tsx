@@ -6,12 +6,12 @@ describe('Overlay (ready variant)', () => {
   it('renders the ready instructions and Start button', () => {
     render(<Overlay variant="ready" onAction={() => undefined} />);
     expect(screen.getByText('Press Space to Start')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Start' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Start/i })).toBeInTheDocument();
   });
 
   it('uses a semantic <button> element (not div-with-onClick)', () => {
     render(<Overlay variant="ready" onAction={() => undefined} />);
-    const btn = screen.getByRole('button', { name: 'Start' });
+    const btn = screen.getByRole('button', { name: /Start/i });
     expect(btn.tagName).toBe('BUTTON');
   });
 
@@ -23,7 +23,7 @@ describe('Overlay (ready variant)', () => {
   it('invokes onAction when Start is clicked', () => {
     const onAction = vi.fn();
     render(<Overlay variant="ready" onAction={onAction} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start/i }));
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 });
@@ -33,7 +33,7 @@ describe('Overlay (game_over variant)', () => {
     render(<Overlay variant="game_over" score={0} onAction={() => undefined} />);
     expect(screen.getByRole('heading', { name: 'Game Over' })).toBeInTheDocument();
     expect(screen.getByTestId('overlay-score')).toHaveTextContent('Final Score: 0');
-    expect(screen.getByRole('button', { name: 'Restart' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Restart/i })).toBeInTheDocument();
   });
 
   it('displays the provided score', () => {
@@ -49,7 +49,25 @@ describe('Overlay (game_over variant)', () => {
   it('invokes onAction when Restart is clicked', () => {
     const onAction = vi.fn();
     render(<Overlay variant="game_over" score={5} onAction={onAction} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Restart' }));
+    fireEvent.click(screen.getByRole('button', { name: /Restart/ }));
     expect(onAction).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Overlay — ARIA labels (WO-010)', () => {
+  it('Start button has a descriptive aria-label', () => {
+    render(<Overlay variant="ready" onAction={() => undefined} />);
+    expect(screen.getByRole('button')).toHaveAttribute(
+      'aria-label',
+      'Start the Dino Jump game',
+    );
+  });
+
+  it('Restart button aria-label includes the final score for screen readers', () => {
+    render(<Overlay variant="game_over" score={42} onAction={() => undefined} />);
+    expect(screen.getByRole('button')).toHaveAttribute(
+      'aria-label',
+      'Restart the game. Final score was 42.',
+    );
   });
 });

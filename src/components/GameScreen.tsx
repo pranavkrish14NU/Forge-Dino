@@ -215,8 +215,23 @@ export function GameScreen({
     if (testEndGame) testEndGame(endGame);
   }, [testEndGame, endGame]);
 
+  const gameAreaRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (state === 'playing') {
+      gameAreaRef.current?.focus({ preventScroll: true });
+    }
+  }, [state]);
+
   return (
-    <main className="game-screen" data-testid="game-screen" data-state={state}>
+    <main
+      ref={gameAreaRef}
+      className="game-screen"
+      data-testid="game-screen"
+      data-state={state}
+      role="application"
+      aria-label="Dino Jump game"
+      tabIndex={-1}
+    >
       <div
         className="game-screen__aria-live"
         role="status"
