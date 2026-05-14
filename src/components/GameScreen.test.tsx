@@ -334,3 +334,50 @@ describe('GameScreen — obstacle spawning + movement (WO-006)', () => {
     expect(getObstacles()).toHaveLength(0);
   });
 });
+
+describe('GameScreen — score HUD (WO-008)', () => {
+  it('renders the HUD only while playing', () => {
+    render(<GameScreen />);
+    expect(screen.queryByTestId('hud')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    expect(screen.getByTestId('hud')).toBeInTheDocument();
+  });
+
+  it('starts the displayed score at 0000', () => {
+    render(<GameScreen />);
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    expect(screen.getByTestId('hud-score').textContent).toBe('0000');
+  });
+
+  it('removes the HUD when transitioning to game_over', () => {
+    let endGameFn: ((s: number) => boolean) | undefined;
+    render(<GameScreen testEndGame={(fn) => (endGameFn = fn)} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    expect(screen.getByTestId('hud')).toBeInTheDocument();
+    act(() => {
+      endGameFn?.(123);
+    });
+    expect(screen.queryByTestId('hud')).not.toBeInTheDocument();
+  });
+
+  it('displays the final score on the game-over overlay (frozen at endGame time)', () => {
+    let endGameFn: ((s: number) => boolean) | undefined;
+    render(<GameScreen testEndGame={(fn) => (endGameFn = fn)} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    act(() => {
+      endGameFn?.(123);
+    });
+    expect(screen.getByTestId('overlay-score')).toHaveTextContent('Final Score: 123');
+  });
+
+  it('resets the HUD score to 0000 on restart', () => {
+    let endGameFn: ((s: number) => boolean) | undefined;
+    render(<GameScreen testEndGame={(fn) => (endGameFn = fn)} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }));
+    act(() => {
+      endGameFn?.(99);
+    });
+    pressKey('Space');
+    expect(screen.getByTestId('hud-score').textContent).toBe('0000');
+  });
+});
