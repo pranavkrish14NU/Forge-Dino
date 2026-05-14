@@ -40,7 +40,6 @@ export function useGameLoop(state: GameState, onUpdate: GameLoopUpdate): void {
         const elapsedSinceLog = (currentTime - lastLogTime) / 1000;
         if (elapsedSinceLog >= FPS_LOG_INTERVAL_SECONDS) {
           const fps = Math.round(frameCount / elapsedSinceLog);
-          // eslint-disable-next-line no-console
           console.debug(`[useGameLoop] ~${fps} fps`);
           frameCount = 0;
           lastLogTime = currentTime;
