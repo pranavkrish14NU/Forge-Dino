@@ -25,7 +25,7 @@ import {
 } from '../engine/spawner';
 import { checkCollision, type AABB } from '../engine/collision';
 
-const GAME_AREA_WIDTH = 960;
+const DEFAULT_GAME_AREA_WIDTH = 1280;
 const DINO_LEFT = 64;
 const DINO_WIDTH = 36;
 const DINO_HEIGHT = 48;
@@ -90,6 +90,21 @@ export function GameScreen({
     testSpawnIntervalOverride ?? nextSpawnInterval(0, testRng),
   );
   const [obstacleIds, setObstacleIds] = useState<number[]>([]);
+  const playfieldRef = useRef<HTMLDivElement>(null);
+  const gameAreaWidthRef = useRef<number>(DEFAULT_GAME_AREA_WIDTH);
+
+  useEffect(() => {
+    const el = playfieldRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const w = entry.contentRect.width;
+        if (w > 0) gameAreaWidthRef.current = w;
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const scoreRef = useRef<number>(0);
   const lastScoreFlushRef = useRef<number>(0);
@@ -129,7 +144,10 @@ export function GameScreen({
 
       timeSinceSpawnRef.current += deltaTime;
       if (timeSinceSpawnRef.current >= nextSpawnIntervalRef.current) {
-        obstaclesRef.current = [...obstaclesRef.current, createObstacle(GAME_AREA_WIDTH)];
+        obstaclesRef.current = [
+          ...obstaclesRef.current,
+          createObstacle(gameAreaWidthRef.current),
+        ];
         timeSinceSpawnRef.current = 0;
         nextSpawnIntervalRef.current =
           testSpawnIntervalOverride ?? nextSpawnInterval(elapsedRef.current, testRng);
@@ -253,7 +271,12 @@ export function GameScreen({
         {announcement}
       </div>
 
-      <div className="game-screen__playfield" data-testid="playfield" aria-hidden={state !== 'playing'}>
+      <div
+        ref={playfieldRef}
+        className="game-screen__playfield"
+        data-testid="playfield"
+        aria-hidden={state !== 'playing'}
+      >
         <div className="game-screen__ground" />
         <Dino ref={dinoElRef} hidden={state !== 'playing'} />
         {state === 'playing' && (
